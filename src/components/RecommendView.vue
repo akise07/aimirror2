@@ -12,6 +12,9 @@ const progressMsg = ref('')
 const result = ref('')
 const errorMsg = ref('')
 
+// 流式读取取消控制器
+let streamAbortController: AbortController | null = null
+
 // 选择输入图片
 const useCachedPhoto = ref(false)
 
@@ -28,6 +31,9 @@ async function startRecommend() {
   result.value = ''
   errorMsg.value = ''
 
+  // 创建取消控制器
+  streamAbortController = new AbortController()
+
   try {
     // 将 base64 转 Blob
     const res = await fetch(store.cachedPhoto)
@@ -37,11 +43,13 @@ async function startRecommend() {
     const stream = await fetchRecommend(blob)
     const reader = stream.getReader()
     const decoder = new TextDecoder()
+    const signal = streamAbortController.signal
 
     let buffer = ''
-    while (true) {
+    while (!signal.aborted) {
       const { done, value } = await reader.read()
       if (done) break
+      if (signal.aborted) break
 
       buffer += decoder.decode(value, { stream: true })
 
@@ -66,14 +74,24 @@ async function startRecommend() {
         }
       }
     }
+
+    // 取消流读取
+    reader.cancel().catch(() => {})
   } catch (e: any) {
+    if (e?.name === 'AbortError') return
     errorMsg.value = e.message || '推荐服务异常'
   } finally {
     isGenerating.value = false
+    streamAbortController = null
   }
 }
 
 function resetRecommend() {
+  // 取消正在进行的流式读取
+  if (streamAbortController) {
+    streamAbortController.abort()
+    streamAbortController = null
+  }
   isGenerating.value = false
   progress.value = 0
   progressMsg.value = ''

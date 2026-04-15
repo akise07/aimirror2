@@ -23,6 +23,9 @@ const status = ref<'idle' | 'creating' | 'running' | 'finish' | 'error'>('idle')
 const resultImageUrl = ref<string | null>(null)
 const errorMsg = ref('')
 
+// 轮询取消控制器
+let pollingAbortController: AbortController | null = null
+
 const canCreate = computed(() => {
   const hasIdImage = useCachedPhoto.value ? !!store.cachedPhoto : !!selectedIdImage.value
   return hasIdImage && selectedRefImage.value && !isCreating.value && !isPolling.value
@@ -84,6 +87,8 @@ async function startMakeup() {
     // 轮询状态
     await pollMakeupState(res.task_id)
   } catch (e: any) {
+    // 如果是取消导致的错误，不更新状态
+    if (e?.name === 'AbortError') return
     errorMsg.value = e.message || '操作失败'
     status.value = 'error'
     isCreating.value = false
@@ -92,9 +97,15 @@ async function startMakeup() {
 }
 
 async function pollMakeupState(tid: string) {
-  while (true) {
+  // 创建新的 AbortController
+  pollingAbortController = new AbortController()
+  const signal = pollingAbortController.signal
+
+  while (!signal.aborted) {
     try {
       const res = await getMakeupState(tid)
+      if (signal.aborted) return  // 检查是否已取消
+
       if (res.status === 'finish') {
         resultImageUrl.value = getMakeupResultUrl(tid)
         status.value = 'finish'
@@ -109,16 +120,22 @@ async function pollMakeupState(tid: string) {
       }
       // running - 继续轮询
     } catch {
+      if (signal.aborted) return
       errorMsg.value = '网络错误，请重试'
       status.value = 'error'
       isPolling.value = false
       return
     }
-    await sleep(1000)
+    await sleep(1000, signal)
   }
 }
 
 function resetTask() {
+  // 取消正在进行的轮询
+  if (pollingAbortController) {
+    pollingAbortController.abort()
+    pollingAbortController = null
+  }
   taskId.value = null
   status.value = 'idle'
   resultImageUrl.value = null
@@ -140,8 +157,12 @@ async function urlToFile(url: string, filename: string): Promise<File> {
   return new File([blob], filename, { type: 'image/jpeg' })
 }
 
-function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+function sleep(ms: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) { reject(new DOMException('Aborted', 'AbortError')); return }
+    const timer = setTimeout(resolve, ms)
+    signal?.addEventListener('abort', () => { clearTimeout(timer); reject(new DOMException('Aborted', 'AbortError')) }, { once: true })
+  })
 }
 </script>
 

@@ -58,9 +58,9 @@ const currentPath = computed(() => {
     <!-- 主内容区域 -->
     <main class="main-content">
       <router-view v-slot="{ Component }">
-        <transition name="fade" mode="out-in">
+        <keep-alive>
           <component :is="Component" />
-        </transition>
+        </keep-alive>
       </router-view>
     </main>
   </div>

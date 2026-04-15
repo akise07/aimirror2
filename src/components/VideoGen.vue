@@ -17,6 +17,9 @@ const status = ref<'idle' | 'creating' | 'running' | 'finish' | 'error'>('idle')
 const resultVideoUrl = ref<string | null>(null)
 const errorMsg = ref('')
 
+// 轮询取消控制器
+let pollingAbortController: AbortController | null = null
+
 // 可选图片列表：妆容生成结果
 const availableImages = computed(() => {
   return store.makeupResults.map(r => ({
@@ -57,6 +60,7 @@ async function startVideoGen() {
 
     await pollVideoState(res.task_id)
   } catch (e: any) {
+    if (e?.name === 'AbortError') return
     errorMsg.value = e.message || '操作失败'
     status.value = 'error'
     isCreating.value = false
@@ -65,9 +69,15 @@ async function startVideoGen() {
 }
 
 async function pollVideoState(tid: string) {
-  while (true) {
+  // 创建新的 AbortController
+  pollingAbortController = new AbortController()
+  const signal = pollingAbortController.signal
+
+  while (!signal.aborted) {
     try {
       const res = await getVideoState(tid)
+      if (signal.aborted) return
+
       if (res.status === 'finish') {
         resultVideoUrl.value = res.fileUrl
         status.value = 'finish'
@@ -80,22 +90,36 @@ async function pollVideoState(tid: string) {
         return
       }
     } catch {
+      if (signal.aborted) return
       errorMsg.value = '网络错误，请重试'
       status.value = 'error'
       isPolling.value = false
       return
     }
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await sleep(1000, signal)
   }
 }
 
 function resetTask() {
+  // 取消正在进行的轮询
+  if (pollingAbortController) {
+    pollingAbortController.abort()
+    pollingAbortController = null
+  }
   taskId.value = null
   status.value = 'idle'
   resultVideoUrl.value = null
   errorMsg.value = ''
   isCreating.value = false
   isPolling.value = false
+}
+
+function sleep(ms: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) { reject(new DOMException('Aborted', 'AbortError')); return }
+    const timer = setTimeout(resolve, ms)
+    signal?.addEventListener('abort', () => { clearTimeout(timer); reject(new DOMException('Aborted', 'AbortError')) }, { once: true })
+  })
 }
 </script>
 
