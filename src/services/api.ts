@@ -74,7 +74,7 @@ export async function fetchRecommend(imageData: Blob): Promise<ReadableStream<Ui
   return res.body
 }
 
-/** 获取参考图片列表 - 通过本地后端 /ref/ 路径访问 */
+/** 获取参考图片列表 - 从打包的静态资源 /ref/ 路径访问 */
 export function getRefImages(): string[] {
   const images = [
     'a1.jpg', 'a2.jpg', 'a3.png', 'a4.jpg', 'a5.jpg',
@@ -82,7 +82,7 @@ export function getRefImages(): string[] {
     'b1.jpg', 'b2.jpg', 'b3.jpg', 'b4.jpg', 'b5.jpg',
     'b6.jpg', 'b10.jpg'
   ]
-  return images.map(name => `${LOCAL_BASE}/ref/${name}`)
+  return images.map(name => `/ref/${name}`)
 }
 
 /** 获取妆容生成结果图片地址 */
