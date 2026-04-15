@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, send_from_directory
 import threading
 import time
 import requests
@@ -8,6 +8,14 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
+
+# 静态文件：参考图片
+REF_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ref")
+
+@app.route('/ref/<path:filename>')
+def serve_ref_image(filename):
+    """提供参考图片"""
+    return send_from_directory(REF_DIR, filename)
 
 host = "www.runninghub.cn"
 api_key = "740945f3fe064b0b8f64789079174f20"
@@ -54,6 +62,14 @@ video_task_store = VideoTaskStore()
 frame_store = FrameStore()
 
 CACHE_DIR = os.path.join("cache", "makeup_img")
+
+# 缓存文件服务
+CACHE_BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
+
+@app.route('/cache/<path:filename>')
+def serve_cache_file(filename):
+    """提供缓存文件"""
+    return send_from_directory(CACHE_BASE_DIR, filename)
 
 def download_image(url: str, save_path: str) -> None:
     """下载网络图片并保存"""
