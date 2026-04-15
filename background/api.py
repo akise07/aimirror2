@@ -204,9 +204,29 @@ def api_makeup_state():
 
 @app.route("/video_gen", methods=["POST"])
 def api_video_gen():
-    data = request.get_json()
-    image_url_input = data.get("image_url", "")
-    text_input = data.get("text", "")
+    # data = request.get_json()
+    # image_url_input = data.get("image_url", "")
+    data = request.files
+    image_id_input = data.get("image_id", "")
+    text_input = request.form.get("text", "")
+
+    image_id_bytes = image_id_input.read()
+
+    url = "https://www.runninghub.cn/openapi/v2/media/upload/binary"
+
+    files = {
+    "file": ("image_id.jpg", BytesIO(image_id_bytes), "image/jpeg"),
+    }
+    headers = {
+    'Authorization': f'Bearer {api_key}'
+    }
+    response_id = requests.request("POST", url, headers=headers, files=files)
+
+    result_id = response_id.json()
+    if result_id.get("code") != 0:
+        return jsonify({"code": 400, "status": "error", "msg": "上传妆容图片失败"}), 400
+
+    fileName_id = result_id.get("data").get("fileName")
     
     url = "https://www.runninghub.cn/task/openapi/create"
 
@@ -217,7 +237,7 @@ def api_video_gen():
         {
             "nodeId": "4",
             "fieldName": "image",
-            "fieldValue": image_url_input
+            "fieldValue": fileName_id
         },
         {
             "nodeId": "10",
@@ -320,57 +340,57 @@ def api_video_status():
 
 # 硬件接口
 
-import Hobot.GPIO as GPIO
+# import Hobot.GPIO as GPIO
 
-pwm1_pin = 32
-pwm2_pin = 33
+# pwm1_pin = 32
+# pwm2_pin = 33
 
-GPIO.setwarnings(False)
+# GPIO.setwarnings(False)
 
-GPIO.setmode(GPIO.BOARD)
+# GPIO.setmode(GPIO.BOARD)
 
-class LightValueStore:
-    def __init__(self):
-        self.light1_value = 0
-        self.light2_value = 0
-        self.lock = threading.Lock()
-        self.p1 = GPIO.PWM(pwm1_pin, 500)
-        self.p2 = GPIO.PWM(pwm2_pin, 500)
+# class LightValueStore:
+#     def __init__(self):
+#         self.light1_value = 0
+#         self.light2_value = 0
+#         self.lock = threading.Lock()
+#         self.p1 = GPIO.PWM(pwm1_pin, 500)
+#         self.p2 = GPIO.PWM(pwm2_pin, 500)
     
-    def set1(self, light1_value):
-        with self.lock:
-            self.light1_value = light1_value
+#     def set1(self, light1_value):
+#         with self.lock:
+#             self.light1_value = light1_value
     
-    def set2(self, light2_value):
-        with self.lock:
-            self.light2_value = light2_value
+#     def set2(self, light2_value):
+#         with self.lock:
+#             self.light2_value = light2_value
 
-light_value_store = LightValueStore()
-light_value_store.p1.start(0)
-light_value_store.p2.start(0)
+# light_value_store = LightValueStore()
+# light_value_store.p1.start(0)
+# light_value_store.p2.start(0)
 
-@app.route("/set_light", methods=["POST"])
-def api_set_light():
-    data = request.get_json()
-    light1_value = int(data.get("light1_value", None))
-    light2_value = int(data.get("light2_value", None))
+# @app.route("/set_light", methods=["POST"])
+# def api_set_light():
+#     data = request.get_json()
+#     light1_value = int(data.get("light1_value", None))
+#     light2_value = int(data.get("light2_value", None))
 
-    if light1_value is None and light2_value is None:
-        return jsonify({"code": 400, "status": "error", "msg": "缺少亮度值"}), 400
+#     if light1_value is None and light2_value is None:
+#         return jsonify({"code": 400, "status": "error", "msg": "缺少亮度值"}), 400
     
-    if light1_value is None:
-        light1_value = light_value_store.light1_value
-    elif light2_value is None:
-        light2_value = light_value_store.light2_value
+#     if light1_value is None:
+#         light1_value = light_value_store.light1_value
+#     elif light2_value is None:
+#         light2_value = light_value_store.light2_value
     
-    if light1_value >= 0 and light1_value <= 100 and light2_value >= 0 and light2_value <= 100:
-        light_value_store.set1(light1_value)
-        light_value_store.set2(light2_value)
+#     if light1_value >= 0 and light1_value <= 100 and light2_value >= 0 and light2_value <= 100:
+#         light_value_store.set1(light1_value)
+#         light_value_store.set2(light2_value)
         
-        light_value_store.p1.ChangeDutyCycle(light1_value)
-        light_value_store.p2.ChangeDutyCycle(light2_value)
+#         light_value_store.p1.ChangeDutyCycle(light1_value)
+#         light_value_store.p2.ChangeDutyCycle(light2_value)
         
-    return jsonify({"code": 200, "msg": "设置灯光成功", "light1_value": light1_value, "light2_value": light2_value})
+#     return jsonify({"code": 200, "msg": "设置灯光成功", "light1_value": light1_value, "light2_value": light2_value})
 
 
 

@@ -104,11 +104,10 @@ POST /video_gen
 
 > Body 请求参数
 
-```json
-{
-  "image_url": "string",
-  "text": "string"
-}
+```yaml
+image_id: ""
+text: 以微小角度偏差，展示多角度妆容，视角看向镜头，神色灵动
+
 ```
 
 ### 请求参数
@@ -116,8 +115,8 @@ POST /video_gen
 |名称|位置|类型|必选|说明|
 |---|---|---|---|---|
 |body|body|object| 是 |none|
-|» image_url|body|string| 是 |none|
-|» text|body|string| 是 |none|
+|» image_id|body|string(binary)| 否 |none|
+|» text|body|string| 否 |none|
 
 > 返回示例
 
