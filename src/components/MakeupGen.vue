@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAppStore } from '../store/app'
 import { createMakeupTask, getMakeupState, getRefImages, getMakeupResultUrl } from '../services/api'
 
 const store = useAppStore()
+const router = useRouter()
 
 // 参考图片列表
 const refImages = getRefImages()
 
 // 选中的图片
-const selectedIdImage = ref<string | null>(null)   // 身份图片路径
+const selectedIdImage = ref<string | null>(null)   // 身份图片路径（ref图片或拍照缓存）
 const useCachedPhoto = ref(false)                   // 是否使用缓存的拍照图片
 const selectedRefImage = ref<string | null>(null)   // 参考妆容图片路径
 
@@ -31,15 +33,18 @@ function selectIdImage(img: string) {
   useCachedPhoto.value = false
 }
 
-function selectRefImage(img: string) {
-  selectedRefImage.value = img
+function selectCachedPhoto() {
+  if (store.cachedPhoto) {
+    useCachedPhoto.value = true
+    selectedIdImage.value = null
+  } else {
+    // 没有缓存，跳转到拍照页面
+    router.push('/camera')
+  }
 }
 
-function toggleCachedPhoto() {
-  useCachedPhoto.value = !useCachedPhoto.value
-  if (useCachedPhoto.value) {
-    selectedIdImage.value = null
-  }
+function selectRefImage(img: string) {
+  selectedRefImage.value = img
 }
 
 async function startMakeup() {
@@ -149,24 +154,29 @@ function sleep(ms: number) {
       <div class="makeup-content">
         <!-- 身份图片选择 -->
         <div class="image-section">
-          <div class="section-header">
-            <span class="section-label">👩 身份图片</span>
-            <button
-              class="btn btn-secondary btn-sm"
-              :class="{ active: useCachedPhoto }"
-              @click="toggleCachedPhoto"
-              :disabled="!store.cachedPhoto"
+          <span class="section-label">👩 身份图片</span>
+          <div class="image-grid">
+            <!-- 拍照缓存框 - 固定在第一格 -->
+            <div
+              class="image-grid-item cached-photo-item"
+              :class="{ selected: useCachedPhoto && !!store.cachedPhoto }"
+              @click="selectCachedPhoto"
             >
-              📸 使用拍照缓存
-            </button>
-          </div>
+              <template v-if="store.cachedPhoto">
+                <img :src="store.cachedPhoto" alt="拍照缓存" />
+                <div v-if="useCachedPhoto" class="check-mark">✓</div>
+                <span class="cached-badge">📸 缓存</span>
+              </template>
+              <template v-else>
+                <div class="cached-placeholder">
+                  <span class="placeholder-icon">📸</span>
+                  <span class="placeholder-text">尚未存储拍照缓存</span>
+                  <span class="placeholder-hint">前往拍照获取缓存</span>
+                </div>
+              </template>
+            </div>
 
-          <div v-if="useCachedPhoto && store.cachedPhoto" class="cached-preview-large">
-            <img :src="store.cachedPhoto" alt="缓存照片" />
-            <span class="preview-tag">📸 拍照缓存</span>
-          </div>
-
-          <div v-else class="image-grid">
+            <!-- 参考图片列表 -->
             <div
               v-for="img in refImages"
               :key="'id-' + img"
@@ -277,47 +287,25 @@ function sleep(ms: number) {
   gap: 12px;
 }
 
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
 .section-label {
   font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-.btn-sm {
-  padding: 6px 14px;
-  font-size: 12px;
-  border-radius: 10px;
-}
-
-.btn-sm.active {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-}
-
-.cached-preview-large {
+/* 拍照缓存框样式 */
+.cached-photo-item {
   position: relative;
-  width: 160px;
-  height: 160px;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 2px solid var(--accent);
-  box-shadow: 0 4px 15px var(--shadow);
+  cursor: pointer;
+  background: var(--bg-secondary);
+  border: 2px dashed var(--border);
 }
 
-.cached-preview-large img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.cached-photo-item:hover {
+  border-style: solid;
 }
 
-.preview-tag {
+.cached-badge {
   position: absolute;
   bottom: 6px;
   left: 50%;
@@ -328,6 +316,37 @@ function sleep(ms: number) {
   padding: 2px 10px;
   border-radius: 10px;
   white-space: nowrap;
+  z-index: 2;
+}
+
+.cached-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  gap: 6px;
+  padding: 12px;
+}
+
+.placeholder-icon {
+  font-size: 20px;
+  opacity: 0.5;
+}
+
+.placeholder-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.placeholder-hint {
+  font-size: 12px;
+  color: var(--accent);
+  text-align: center;
+  opacity: 0.8;
 }
 
 .action-bar {

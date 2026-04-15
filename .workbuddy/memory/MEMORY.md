@@ -14,7 +14,7 @@
   - /recommend - 妆容推荐（流式进度输出）
   - /settings - 调光+主题切换+关于
 - 状态管理：Pinia (useAppStore)，存储主题、缓存照片、妆容结果、灯光值
-- 4套主题：白粉(pink)、黑粉(dark-pink)、暖色(warm)、冷色(cool)
+- 4套主题：白粉(pink)、黑粉(dark-pink，默认)、暖色(warm)、冷色(cool)
 - 后端静态文件：/ref/ 参考图片、/cache/ 缓存文件（妆容结果等）
 
 ## API 要点

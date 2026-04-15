@@ -18,7 +18,7 @@ export interface MakeupResult {
 
 export const useAppStore = defineStore('app', {
   state: (): AppState => ({
-    theme: 'pink',
+    theme: 'dark-pink',
     cachedPhoto: null,
     makeupResults: [],
     light1: 50,
