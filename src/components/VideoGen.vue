@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useAppStore } from '../store/app'
-import { createVideoTask, getVideoState, getMakeupResultUrl } from '../services/api'
+import { createVideoTask, getVideoState } from '../services/api'
 
 const store = useAppStore()
 
-// 选择的图片
+// 选择的图片（URL 用于展示，taskId 用于取 File）
 const selectedImage = ref<string | null>(null)
+const selectedTaskId = ref<string | null>(null)
 const promptText = ref('以微小角度偏差，展示多角度妆容，视角看向镜头，神色灵动')
 
 // 任务状态
@@ -33,8 +34,16 @@ const canCreate = computed(() => {
   return selectedImage.value && promptText.value.trim() && !isCreating.value && !isPolling.value
 })
 
-function selectImage(url: string) {
+function selectImage(url: string, tid: string) {
   selectedImage.value = url
+  selectedTaskId.value = tid
+}
+
+/** 从 URL fetch 图片并转为 File 对象 */
+async function urlToFile(url: string, filename: string): Promise<File> {
+  const res = await fetch(url)
+  const blob = await res.blob()
+  return new File([blob], filename, { type: blob.type || 'image/jpeg' })
 }
 
 async function startVideoGen() {
@@ -46,9 +55,9 @@ async function startVideoGen() {
   resultVideoUrl.value = null
 
   try {
-    // 使用本地后端路径作为 image_url
-    const imageUrl = selectedImage.value!
-    const res = await createVideoTask(imageUrl, promptText.value)
+    // 将选中的图片 URL 转为 File 对象上传
+    const imageFile = await urlToFile(selectedImage.value!, `${selectedTaskId.value || 'image'}.jpg`)
+    const res = await createVideoTask(imageFile, promptText.value)
     if (res.code !== 200 || !res.task_id) {
       throw new Error(res.msg || '创建任务失败')
     }
@@ -141,7 +150,7 @@ function sleep(ms: number, signal?: AbortSignal) {
             :key="img.taskId"
             class="image-option"
             :class="{ selected: selectedImage === img.url }"
-            @click="selectImage(img.url)"
+            @click="selectImage(img.url, img.taskId)"
           >
             <img :src="img.url" :alt="img.label" class="option-thumb" />
             <span class="option-label">{{ img.label }}</span>

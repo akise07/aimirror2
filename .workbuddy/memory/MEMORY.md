@@ -20,7 +20,7 @@
 ## API 要点
 - 妆容生成：POST /makeup_image (FormData: image_id, image_ref) → task_id
 - 妆容状态：POST /makeup_state (JSON: taskId) → status: running/finish
-- 视频生成：POST /video_gen (JSON: image_url, text) → task_id
+- 视频生成：POST /video_gen (FormData: image_id, text) → task_id
 - 视频状态：POST /video_state (JSON: taskId) → status + fileUrl
 - 调光：POST /set_light (JSON: light1_value, light2_value)
 - 视频流：GET /video_feed (MJPEG)

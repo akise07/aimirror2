@@ -31,12 +31,14 @@ export async function getMakeupState(taskId: string) {
   return res.json()
 }
 
-/** 视频生成 - 创建任务 */
-export async function createVideoTask(imageUrl: string, text: string) {
+/** 视频生成 - 创建任务（FormData: image_id 文件上传 + text） */
+export async function createVideoTask(imageId: File, text: string) {
+  const formData = new FormData()
+  formData.append('image_id', imageId)
+  formData.append('text', text)
   const res = await fetch(`${LOCAL_BASE}/video_gen`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ image_url: imageUrl, text }),
+    body: formData,
   })
   return res.json()
 }
