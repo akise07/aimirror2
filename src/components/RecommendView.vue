@@ -1,9 +1,18 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAppStore } from '../store/app'
-import { fetchRecommend } from '../services/api'
+import { fetchRecommend, getRefImages } from '../services/api'
 
 const store = useAppStore()
+const router = useRouter()
+
+// 参考图片列表
+const refImages = getRefImages()
+
+// 选中的图片
+const selectedImage = ref<string | null>(null)   // 选中的图片路径
+const useCachedPhoto = ref(false)                // 是否使用拍照缓存
 
 // 状态
 const isGenerating = ref(false)
@@ -15,15 +24,28 @@ const errorMsg = ref('')
 // 流式读取取消控制器
 let streamAbortController: AbortController | null = null
 
-// 选择输入图片
-const useCachedPhoto = ref(false)
+const canStart = computed(() => {
+  const hasImage = useCachedPhoto.value ? !!store.cachedPhoto : !!selectedImage.value
+  return hasImage && !isGenerating.value
+})
+
+function selectRefImage(img: string) {
+  selectedImage.value = img
+  useCachedPhoto.value = false
+}
+
+function selectCachedPhoto() {
+  if (store.cachedPhoto) {
+    useCachedPhoto.value = true
+    selectedImage.value = null
+  } else {
+    // 没有缓存，跳转到拍照页面
+    router.push('/camera')
+  }
+}
 
 async function startRecommend() {
-  if (isGenerating.value) return
-  if (!store.cachedPhoto) {
-    errorMsg.value = '请先在首页拍照缓存身份图片'
-    return
-  }
+  if (!canStart.value) return
 
   isGenerating.value = true
   progress.value = 0
@@ -35,9 +57,17 @@ async function startRecommend() {
   streamAbortController = new AbortController()
 
   try {
-    // 将 base64 转 Blob
-    const res = await fetch(store.cachedPhoto)
-    const blob = await res.blob()
+    // 获取图片 Blob
+    let blob: Blob
+    if (useCachedPhoto.value && store.cachedPhoto) {
+      const res = await fetch(store.cachedPhoto)
+      blob = await res.blob()
+    } else if (selectedImage.value) {
+      const res = await fetch(selectedImage.value)
+      blob = await res.blob()
+    } else {
+      throw new Error('未选择图片')
+    }
 
     // 调用流式推荐接口
     const stream = await fetchRecommend(blob)
@@ -104,17 +134,43 @@ function resetRecommend() {
   <div class="recommend-view">
     <div class="section-card">
       <h2 class="section-title">🌟 妆容推荐</h2>
-      <p class="section-desc">AI 分析你的面部特征，为你推荐最适合的妆容方案</p>
+      <p class="section-desc">选择一张图片，AI 分析面部特征，为你推荐最适合的妆容方案</p>
 
-      <!-- 输入区域 -->
-      <div class="input-area">
-        <div class="photo-check">
-          <span>📸 使用拍照缓存图片</span>
-          <span v-if="store.cachedPhoto" class="tag">✅ 已缓存</span>
-          <span v-else class="tag" style="background: var(--bg-secondary); color: var(--text-muted);">❌ 未缓存</span>
-        </div>
-        <div v-if="store.cachedPhoto" class="preview-thumb">
-          <img :src="store.cachedPhoto" alt="缓存照片" />
+      <!-- 图片选择区域 -->
+      <div class="image-section">
+        <span class="section-label">🖼️ 选择图片</span>
+        <div class="image-grid">
+          <!-- 拍照缓存框 - 固定在第一格 -->
+          <div
+            class="image-grid-item cached-photo-item"
+            :class="{ selected: useCachedPhoto && !!store.cachedPhoto }"
+            @click="selectCachedPhoto"
+          >
+            <template v-if="store.cachedPhoto">
+              <img :src="store.cachedPhoto" alt="拍照缓存" />
+              <div v-if="useCachedPhoto" class="check-mark">✓</div>
+              <span class="cached-badge">📸 缓存</span>
+            </template>
+            <template v-else>
+              <div class="cached-placeholder">
+                <span class="placeholder-icon">📸</span>
+                <span class="placeholder-text">尚未存储拍照缓存</span>
+                <span class="placeholder-hint">前往拍照获取缓存</span>
+              </div>
+            </template>
+          </div>
+
+          <!-- 参考图片列表 -->
+          <div
+            v-for="img in refImages"
+            :key="img"
+            class="image-grid-item"
+            :class="{ selected: selectedImage === img && !useCachedPhoto }"
+            @click="selectRefImage(img)"
+          >
+            <img :src="img" :alt="img" />
+            <div v-if="selectedImage === img && !useCachedPhoto" class="check-mark">✓</div>
+          </div>
         </div>
       </div>
 
@@ -122,7 +178,7 @@ function resetRecommend() {
       <div class="action-bar">
         <button
           class="btn btn-primary"
-          :disabled="isGenerating || !store.cachedPhoto"
+          :disabled="!canStart"
           @click="startRecommend"
         >
           <span v-if="isGenerating">⏳ 分析中...</span>
@@ -189,32 +245,73 @@ function resetRecommend() {
   margin-bottom: 24px;
 }
 
-.input-area {
+.image-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   margin-bottom: 20px;
 }
 
-.photo-check {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 14px;
+.section-label {
+  font-size: 15px;
+  font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 12px;
 }
 
-.preview-thumb {
-  width: 120px;
-  height: 120px;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 2px solid var(--accent);
-  box-shadow: 0 4px 15px var(--shadow);
+/* 拍照缓存框样式 */
+.cached-photo-item {
+  position: relative;
+  cursor: pointer;
+  background: var(--bg-secondary);
+  border: 2px dashed var(--border);
 }
 
-.preview-thumb img {
+.cached-photo-item:hover {
+  border-style: solid;
+}
+
+.cached-badge {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  background: var(--accent);
+  color: #fff;
+  padding: 2px 10px;
+  border-radius: 10px;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.cached-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  gap: 6px;
+  padding: 12px;
+}
+
+.placeholder-icon {
+  font-size: 20px;
+  opacity: 0.5;
+}
+
+.placeholder-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.placeholder-hint {
+  font-size: 12px;
+  color: var(--accent);
+  text-align: center;
+  opacity: 0.8;
 }
 
 .action-bar {
