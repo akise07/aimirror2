@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAppStore, type ThemeMode } from './store/app'
 
 const store = useAppStore()
+const route = useRoute()
 
 const themeAttr = computed(() => {
   const map: Record<ThemeMode, string> = {
@@ -14,9 +16,7 @@ const themeAttr = computed(() => {
   return map[store.theme]
 })
 
-const currentPath = computed(() => {
-  return window.location.hash.replace('#', '') || '/camera'
-})
+const currentPath = computed(() => route.path)
 </script>
 
 <template>
