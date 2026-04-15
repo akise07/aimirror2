@@ -15,6 +15,9 @@ const selectedIdImage = ref<string | null>(null)   // 身份图片路径（ref�
 const useCachedPhoto = ref(false)                   // 是否使用缓存的拍照图片
 const selectedRefImage = ref<string | null>(null)   // 参考妆容图片路径
 
+// 图片预览
+const previewImage = ref<string | null>(null)
+
 // 任务状态
 const isCreating = ref(false)
 const isPolling = ref(false)
@@ -32,12 +35,22 @@ const canCreate = computed(() => {
 })
 
 function selectIdImage(img: string) {
+  // 已勾选的图片再点击 → 放大预览
+  if (selectedIdImage.value === img && !useCachedPhoto.value) {
+    previewImage.value = img
+    return
+  }
   selectedIdImage.value = img
   useCachedPhoto.value = false
 }
 
 function selectCachedPhoto() {
   if (store.cachedPhoto) {
+    // 已选中缓存照片 → 放大预览
+    if (useCachedPhoto.value) {
+      previewImage.value = store.cachedPhoto
+      return
+    }
     useCachedPhoto.value = true
     selectedIdImage.value = null
   } else {
@@ -47,6 +60,11 @@ function selectCachedPhoto() {
 }
 
 function selectRefImage(img: string) {
+  // 已勾选的图片再点击 → 放大预览
+  if (selectedRefImage.value === img) {
+    previewImage.value = img
+    return
+  }
   selectedRefImage.value = img
 }
 
@@ -265,6 +283,13 @@ function sleep(ms: number, signal?: AbortSignal) {
       </div>
     </div>
   </div>
+
+  <!-- 图片预览模态框 -->
+  <Teleport to="body">
+    <div v-if="previewImage" class="preview-overlay" @click="previewImage = null">
+      <img :src="previewImage" class="preview-image" />
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -415,5 +440,31 @@ function sleep(ms: number, signal?: AbortSignal) {
   border-radius: 16px;
   box-shadow: 0 8px 30px var(--shadow-strong);
   border: 2px solid var(--border);
+}
+
+/* 图片预览模态框 */
+.preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  animation: fadeIn 0.2s ease;
+}
+
+.preview-image {
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: 16px;
+  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.5);
+  object-fit: contain;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 </style>
