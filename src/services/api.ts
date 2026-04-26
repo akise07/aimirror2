@@ -68,6 +68,11 @@ export function getVideoFeedUrl() {
   return `${LOCAL_BASE}/video_feed`
 }
 
+/** 视频单帧地址（用于拍照截帧） */
+export function getVideoFrameUrl() {
+  return `${LOCAL_BASE}/video_frame`
+}
+
 /** 妆容推荐 - 流式接口 */
 export async function fetchRecommend(imageData: Blob): Promise<ReadableStream<Uint8Array>> {
   const res = await fetch(`${CLOUD_BASE}/recommend`, {

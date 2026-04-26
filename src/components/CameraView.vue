@@ -1,29 +1,50 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAppStore } from '../store/app'
 import { getVideoFeedUrl } from '../services/api'
 
 const store = useAppStore()
 const videoError = ref(false)
 const streamUrl = ref('')
+const captureMsg = ref('')
+const videoRef = ref<HTMLImageElement | null>(null)
 
 onMounted(() => {
   streamUrl.value = getVideoFeedUrl()
 })
 
 function capturePhoto() {
-  const video = document.querySelector('.camera-video') as HTMLImageElement
-  if (!video) return
+  const video = videoRef.value
+  if (!video) {
+    captureMsg.value = '❌ 未找到视频元素'
+    return
+  }
 
-  const canvas = document.createElement('canvas')
-  canvas.width = 1024
-  canvas.height = 1024
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = video.naturalWidth || 1024
+    canvas.height = video.naturalHeight || 1024
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      captureMsg.value = '❌ Canvas 初始化失败'
+      return
+    }
 
-  ctx.drawImage(video, 0, 0, 1024, 1024)
-  const base64 = canvas.toDataURL('image/jpeg', 0.9)
-  store.setCachedPhoto(base64)
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    const base64 = canvas.toDataURL('image/jpeg', 0.9)
+
+    if (!base64 || base64 === 'data:,') {
+      captureMsg.value = '❌ 截图失败（可能跨域限制）'
+      return
+    }
+
+    store.setCachedPhoto(base64)
+    captureMsg.value = '✅ 拍照成功！'
+    setTimeout(() => { captureMsg.value = '' }, 2000)
+  } catch (e: any) {
+    console.error('capturePhoto error:', e)
+    captureMsg.value = `❌ 拍照失败：${e.message || '未知错误'}`
+  }
 }
 
 function handleVideoError() {
@@ -37,9 +58,11 @@ function handleVideoError() {
       <div class="video-wrapper">
         <img
           v-if="!videoError"
+          ref="videoRef"
           :src="streamUrl"
           class="camera-video"
           alt="📹 摄像头画面"
+          crossorigin="anonymous"
           @error="handleVideoError"
         />
         <div v-else class="video-placeholder">
@@ -57,6 +80,7 @@ function handleVideoError() {
           <span class="capture-icon">📸</span>
           <span>拍照</span>
         </button>
+        <div v-if="captureMsg" class="capture-msg">{{ captureMsg }}</div>
         <div v-if="store.cachedPhoto" class="cached-preview">
           <img :src="store.cachedPhoto" alt="已拍照片" class="cached-img" />
           <span class="cached-tag">✅ 已缓存</span>
@@ -207,6 +231,16 @@ function handleVideoError() {
   color: #fff;
   padding: 1px 6px;
   border-radius: 8px;
+  white-space: nowrap;
+}
+
+.capture-msg {
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  padding: 6px 14px;
+  border-radius: 10px;
+  text-align: center;
   white-space: nowrap;
 }
 </style>

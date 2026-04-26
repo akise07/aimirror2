@@ -34,3 +34,8 @@
 - 调光：POST /set_light (JSON: light1_value, light2_value)
 - 视频流：GET /video_feed (MJPEG)
 - 妆容推荐：POST /recommend (binary image) → MJPEG 流式 JSON
+
+## 踩坑经验
+- **MJPEG + crossorigin 不兼容**：Electron 已设 `webSecurity: false`，canvas 不会被跨域污染，不要给 MJPEG `<img>` 加 `crossorigin="anonymous"`，否则浏览器会因 CORS 校验拒绝加载 MJPEG 流
+- **拍照截帧**：不用 canvas 截帧（`webSecurity: false` 不阻止 canvas tainting），改用后端 `/video_frame` 单帧接口 + `fetch → Blob → FileReader → base64`，彻底绕开污染问题
+  - 后端未部署 `/video_frame` 时，可从前端直接解析 MJPEG 流：fetch video_feed → ReadableStream → 找 FFD8/FFD9 标记 → 提取 JPEG bytes → Blob → base64

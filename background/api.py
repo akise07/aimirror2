@@ -6,8 +6,10 @@ import json
 from io import BytesIO
 import os
 from datetime import datetime
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 # 静态文件：参考图片
 REF_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ref")
@@ -319,6 +321,15 @@ def api_video_feed():
 
     return Response(generate(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/video_frame')
+def api_video_frame():
+    """返回当前最新一帧的 JPEG 图片，用于拍照截帧"""
+    frame, _ = frame_store.get()
+    if frame:
+        return Response(frame, mimetype='image/jpeg')
+    else:
+        return jsonify({'code': 404, 'msg': '暂无视频帧'}), 404
 
 @app.route('/video_status')
 def api_video_status():
