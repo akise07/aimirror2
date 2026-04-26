@@ -131,12 +131,12 @@ def api_makeup_image():
     "workflowId": makeup_workflow_id,
     "nodeInfoList": [
         {
-            "nodeId": "3",
+            "nodeId": "63",
             "fieldName": "image",
             "fieldValue": fileName_id
         },
         {
-            "nodeId": "4",
+            "nodeId": "64",
             "fieldName": "image",
             "fieldValue": fileName_ref
         }
@@ -237,7 +237,7 @@ def api_video_gen():
     "workflowId": video_workflow_id,
     "nodeInfoList": [
         {
-            "nodeId": "4",
+            "nodeId": "27",
             "fieldName": "image",
             "fieldValue": fileName_id
         },

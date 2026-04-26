@@ -6,7 +6,8 @@
 
 // const LOCAL_BASE = 'http://localhost:3401'
 // const CLOUD_BASE = 'http://localhost:3402'
-const LOCAL_BASE = 'http://192.168.137.151:3401/'
+// const LOCAL_BASE = 'http://192.168.137.151:3401'
+const LOCAL_BASE = 'http://10.2.90.96:3401'
 const CLOUD_BASE = 'http://localhost:3402'
 
 /** 妆容生成 - 创建任务 */
