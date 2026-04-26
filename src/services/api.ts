@@ -78,11 +78,18 @@ export async function fetchRecommend(imageData: Blob): Promise<ReadableStream<Ui
   return res.body
 }
 
-/** 获取参考图片列表 - 从打包的静态资源 /ref/ 路径访问 */
-export function getRefImages(): string[] {
+/** 获取身份图片列表（A类，a开头）- 用于妆容生成身份图和妆容推荐 */
+export function getIdentityImages(): string[] {
   const images = [
     'a1.jpg', 'a2.jpg', 'a3.png', 'a4.jpg', 'a5.jpg',
-    'a6.jpg', 'a7.jpg', 'a8.jpg', 'a9.jpg', 'a10.jpg',
+    'a6.jpg', 'a7.jpg', 'a8.jpg', 'a9.jpg', 'a10.jpg'
+  ]
+  return images.map(name => `/ref/${name}`)
+}
+
+/** 获取参考妆容图片列表（B类，b开头）- 用于妆容生成参考妆效 */
+export function getMakeupRefImages(): string[] {
+  const images = [
     'b1.jpg', 'b2.jpg', 'b3.jpg', 'b4.jpg', 'b5.jpg',
     'b6.jpg', 'b10.jpg'
   ]

@@ -2,13 +2,14 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '../store/app'
-import { createMakeupTask, getMakeupState, getRefImages, getMakeupResultUrl } from '../services/api'
+import { createMakeupTask, getMakeupState, getIdentityImages, getMakeupRefImages, getMakeupResultUrl } from '../services/api'
 
 const store = useAppStore()
 const router = useRouter()
 
-// 参考图片列表
-const refImages = getRefImages()
+// A类身份图片 + B类参考妆容图片
+const identityImages = getIdentityImages()
+const makeupRefImages = getMakeupRefImages()
 
 // 选中的图片
 const selectedIdImage = ref<string | null>(null)   // 身份图片路径（ref图片或拍照缓存）
@@ -215,9 +216,9 @@ function sleep(ms: number, signal?: AbortSignal) {
               </template>
             </div>
 
-            <!-- 参考图片列表 -->
+            <!-- 身份图片列表（A类） -->
             <div
-              v-for="img in refImages"
+              v-for="img in identityImages"
               :key="'id-' + img"
               class="image-grid-item"
               :class="{ selected: selectedIdImage === img && !useCachedPhoto }"
@@ -234,7 +235,7 @@ function sleep(ms: number, signal?: AbortSignal) {
           <span class="section-label">🎨 参考妆容图片</span>
           <div class="image-grid">
             <div
-              v-for="img in refImages"
+              v-for="img in makeupRefImages"
               :key="'ref-' + img"
               class="image-grid-item"
               :class="{ selected: selectedRefImage === img }"

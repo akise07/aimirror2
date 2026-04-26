@@ -17,6 +17,15 @@
 - 4套主题：白粉(pink)、黑粉(dark-pink，默认)、暖色(warm)、冷色(cool)
 - 后端静态文件：/ref/ 参考图片、/cache/ 缓存文件（妆容结果等）
 
+## 引用图片分类规则
+- **A类**（a开头，a1~a10）：身份图片，用于妆容生成（身份图）和妆容推荐
+- **B类**（b开头，b1~b6, b10）：参考妆容图片，用于妆容生成（参考妆效图）
+- 妆容生成 = A类身份图 + B类参考妆效
+- 妆容推荐 = A类身份图
+- API层已拆分：`getIdentityImages()` 返回A类，`getMakeupRefImages()` 返回B类
+- MakeupGen.vue：身份图用 identityImages(A)，参考妆容用 makeupRefImages(B)
+- RecommendView.vue：图片列表用 identityImages(A)
+
 ## API 要点
 - 妆容生成：POST /makeup_image (FormData: image_id, image_ref) → task_id
 - 妆容状态：POST /makeup_state (JSON: taskId) → status: running/finish

@@ -2,13 +2,13 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '../store/app'
-import { fetchRecommend, getRefImages } from '../services/api'
+import { fetchRecommend, getIdentityImages } from '../services/api'
 
 const store = useAppStore()
 const router = useRouter()
 
-// 参考图片列表
-const refImages = getRefImages()
+// A类身份图片列表
+const identityImages = getIdentityImages()
 
 // 选中的图片
 const selectedImage = ref<string | null>(null)   // 选中的图片路径
@@ -160,9 +160,9 @@ function resetRecommend() {
             </template>
           </div>
 
-          <!-- 参考图片列表 -->
+          <!-- 身份图片列表（A类） -->
           <div
-            v-for="img in refImages"
+            v-for="img in identityImages"
             :key="img"
             class="image-grid-item"
             :class="{ selected: selectedImage === img && !useCachedPhoto }"
