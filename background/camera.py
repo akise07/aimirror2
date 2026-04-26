@@ -7,7 +7,7 @@ try:
 except ImportError:
     from hobot_dnn_rdkx5 import pyeasy_dnn as dnn
 import threading
-import time
+import time,sys
 import multiprocessing
 import signal, requests
 import numpy as np
@@ -80,13 +80,83 @@ def nv12_to_jpeg_bytes(nv12_data, width, height, quality=85):
     
     return jpeg_bytes
 
-h, w = 1024, 1024
+ASPECT_W, ASPECT_H = 1920, 1080
+
+def nv12_stretch_crop(nv12, src_h, src_w, crop_size):
+    """
+    NV12 numpy array (src_h×src_w, 变形) → 拉伸恢复纵横比 → 中心裁剪 → NV12 bytes
+    """
+    # 分离 Y 和 UV 平面
+    y_size = src_h * src_w
+    y_plane = nv12[:y_size].reshape(src_h, src_w)
+    uv_plane = nv12[y_size:].reshape(src_h // 2, src_w)
+
+    # 拉伸后目标宽度
+    new_w = int(src_h * ASPECT_W / ASPECT_H)  # 512 → 910
+
+    # Y 平面: (512, 512) → (512, 910)
+    y_stretched = cv2.resize(y_plane, (new_w, src_h), interpolation=cv2.INTER_LINEAR)
+
+    # UV 平面: (256, 512) → (256, 910)，reshape成双通道防止U/V交叉
+    uv_2ch = uv_plane.reshape(src_h // 2, src_w // 2, 2)
+    uv_2ch = cv2.resize(uv_2ch, (new_w // 2, src_h // 2), interpolation=cv2.INTER_LINEAR)
+    uv_stretched = uv_2ch.reshape(src_h // 2, new_w)
+
+    # 中心裁剪
+    x1 = (new_w - crop_size) // 2  # 199
+    y1 = (src_h - crop_size) // 2  # 0
+
+    y_crop = y_stretched[y1:y1 + crop_size, x1:x1 + crop_size]
+    uv_crop = uv_stretched[y1 // 2:(y1 + crop_size) // 2, x1:x1 + crop_size]
+
+    # 合并回 NV12
+    out = np.empty(crop_size * crop_size * 3 // 2, dtype=np.uint8)
+    out[:crop_size * crop_size] = y_crop.ravel()
+    out[crop_size * crop_size:] = uv_crop.ravel()
+    return out.tobytes()
+
+def nv12_stretch_crop_to_jpeg(nv12, src_h, src_w, crop_size, quality=85):
+    """
+    NV12 → BGR → 拉伸恢复纵横比 → 中心裁剪 → JPEG
+    全程 OpenCV 处理，不手动拆 Y/UV 平面
+    """
+    # OpenCV 自动处理 stride，不依赖紧密排列
+    bgr = cv2.cvtColor(nv12.reshape(-1, src_w), cv2.COLOR_YUV2BGR_NV12)
+
+    bgr = cv2.flip(bgr, 0)
+
+    bgr = cv2.bilateralFilter(bgr, 9, 75, 75)
+
+
+    # 拉伸宽度恢复纵横比: 512x512 → 910x512
+    new_w = int(src_h * ASPECT_W / ASPECT_H)
+    stretched = cv2.resize(bgr, (new_w, src_h), interpolation=cv2.INTER_LINEAR)
+
+    # 中心裁剪 512x512
+    x1 = (new_w - crop_size) // 2
+    cropped = stretched[:, x1:x1 + crop_size]
+
+    # BGR → JPEG
+    _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, quality])
+    return buf.tobytes()
+
+# Camera API, get camera object
+cam = srcampy.Camera()
+
+def signal_handler(signal, frame):
+    global is_stop, cam
+    print("Stopping!\n")
+    is_stop=True
+    cam.close_cam()
+    sys.exit(0)
+
+
+h, w = 512, 512
 
 if __name__ == '__main__':
-    # signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
 
-    # Camera API, get camera object
-    cam = srcampy.Camera()
+    
 
     # get model info
     # h, w = h, w
@@ -95,7 +165,7 @@ if __name__ == '__main__':
     # Open f37 camera
     # For the meaning of parameters, please refer to the relevant documents of camera
     # cam.open_cam(0, -1, -1, [w, w], [h, h],sensor_height,sensor_width)
-    cam.open_cam(0, -1, 30, [w,1920], [h,1080],1080,1920)
+    cam.open_cam(0, -1, 30, [w,w], [h,h],1080,1920)
 
     print("开始监听摄像帧")
     while not is_stop:
@@ -107,7 +177,10 @@ if __name__ == '__main__':
         img_bytes = bytes(raw)
         nv12 = np.frombuffer(img_bytes, dtype=np.uint8)
 
-        jpeg_bytes = nv12_to_jpeg_bytes(nv12, w, h, 85)
+        # nv12 = nv12_stretch_crop(nv12, h, w, w)
+
+        # jpeg_bytes = nv12_to_jpeg_bytes(nv12, w, h, 85)
+        jpeg_bytes = nv12_stretch_crop_to_jpeg(nv12, h, w, w, 85)
         # bgr = cv2.cvtColor(nv12.reshape(512*2,512), cv2.COLOR_YUV2BGR_NV12)
 
         # # BGR → JPEG
