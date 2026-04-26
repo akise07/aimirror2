@@ -126,7 +126,8 @@ async function pollMakeupState(tid: string) {
       if (signal.aborted) return  // 检查是否已取消
 
       if (res.status === 'finish') {
-        resultImageUrl.value = getMakeupResultUrl(tid)
+        // 优先使用接口返回的 fileUrl，而非本地缓存路径
+        resultImageUrl.value = res.fileUrl || getMakeupResultUrl(tid)
         status.value = 'finish'
         isPolling.value = false
         store.addMakeupResult({ taskId: tid, imageUrl: resultImageUrl.value!, timestamp: Date.now() })

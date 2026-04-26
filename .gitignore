@@ -25,3 +25,5 @@ demo
 *.njsproj
 *.sln
 *.sw?
+
+background/cache/
