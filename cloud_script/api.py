@@ -3,8 +3,10 @@ import threading
 import time
 from recommend import RecommendGenerator
 import json
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 recommend_generator = RecommendGenerator()
 
