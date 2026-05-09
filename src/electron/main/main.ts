@@ -17,14 +17,14 @@ async function handleFileOpen() {
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
-        width: 1400,
-        height: 900,
-        minWidth: 1200,
-        minHeight: 700,
+        width: 850,
+        height: 500,
+        minWidth: 850,
+        minHeight: 500,
         frame: true,
         autoHideMenuBar: true,
         title: 'AIMakeup 美妆镜',
-        icon: join(__dirname, '../../public/icon.ico'),
+        icon: isDev ? join(__dirname, '../../public/favicon.ico') : join(__dirname, '../../favicon.ico'),
         webPreferences: {
             preload: join(__dirname, '../preload/preload.js'),
             webSecurity: false, // 允许跨域访问本地后端

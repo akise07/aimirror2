@@ -25,9 +25,7 @@
       "output": "release/${version}"
     },
     "files": [
-      "dist",
-      "public/**",
-      "ref/**"
+      "dist/**/*"
     ],
     "linux": {
       "artifactName": "${productName}-v${version}-${platform}-setup.${ext}",

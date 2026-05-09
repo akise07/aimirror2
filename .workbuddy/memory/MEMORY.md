@@ -35,6 +35,12 @@
 - 视频流：GET /video_feed (MJPEG)
 - 妆容推荐：POST /recommend (binary image) → MJPEG 流式 JSON
 
+## Electron 打包经验
+- **public/ 静态资源路径必须用相对路径**：`/ref/xxx` 在 `file://` 协议下解析到磁盘根目录，必须用 `./ref/xxx`
+- **Vite publicDir 展平**：`public/ref/a.jpg` build 后变成 `dist/ref/a.jpg`（public 目录名不保留），main.ts 图标路径需按 isDev 区分
+- **electron-builder files 通配符**：`"dist"` 可能不递归匹配所有文件类型，用 `"dist/**/*"` 确保图片等非代码文件也打入 asar
+- **icon.ico 不存在**：public/ 下只有 favicon.ico，没有 icon.ico，注意区分
+
 ## 踩坑经验
 - **MJPEG + crossorigin 不兼容**：Electron 已设 `webSecurity: false`，canvas 不会被跨域污染，不要给 MJPEG `<img>` 加 `crossorigin="anonymous"`，否则浏览器会因 CORS 校验拒绝加载 MJPEG 流
 - **拍照截帧**：不用 canvas 截帧（`webSecurity: false` 不阻止 canvas tainting），改用后端 `/video_frame` 单帧接口 + `fetch → Blob → FileReader → base64`，彻底绕开污染问题

@@ -6,8 +6,8 @@
 
 // const LOCAL_BASE = 'http://localhost:3401'
 // const CLOUD_BASE = 'http://localhost:3402'
-// const LOCAL_BASE = 'http://192.168.137.151:3401'
-const LOCAL_BASE = 'http://192.168.191.180:3401/'
+const LOCAL_BASE = 'http://192.168.137.151:3401'
+// const LOCAL_BASE = 'http://192.168.191.180:3401/'
 const CLOUD_BASE = 'http://direct.virtaicloud.com:21834'
 
 /** 妆容生成 - 创建任务 */
@@ -90,7 +90,7 @@ export function getIdentityImages(): string[] {
     'a1.jpg', 'a2.jpg', 'a3.png', 'a4.jpg', 'a5.jpg',
     'a6.jpg', 'a7.jpg', 'a8.jpg', 'a9.jpg', 'a10.jpg'
   ]
-  return images.map(name => `/ref/${name}`)
+  return images.map(name => `./ref/${name}`)
 }
 
 /** 获取参考妆容图片列表（B类，b开头）- 用于妆容生成参考妆效 */
@@ -99,7 +99,7 @@ export function getMakeupRefImages(): string[] {
     'b1.jpg', 'b2.jpg', 'b3.jpg', 'b4.jpg', 'b5.jpg',
     'b6.jpg', 'b10.jpg'
   ]
-  return images.map(name => `/ref/${name}`)
+  return images.map(name => `./ref/${name}`)
 }
 
 /** 获取妆容生成结果图片地址 */
