@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAppStore, type ThemeMode } from './store/app'
+import VoiceAssistant from './components/VoiceAssistant.vue'
 
 const store = useAppStore()
 const route = useRoute()
@@ -63,6 +64,9 @@ const currentPath = computed(() => route.path)
         </keep-alive>
       </router-view>
     </main>
+
+    <!-- 语音悬浮窗口 -->
+    <VoiceAssistant />
   </div>
 </template>
 
