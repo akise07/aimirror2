@@ -8,7 +8,7 @@
 // const CLOUD_BASE = 'http://localhost:3402'
 const LOCAL_BASE = 'http://192.168.137.151:3401'
 // const LOCAL_BASE = 'http://192.168.191.180:3401/'
-const CLOUD_BASE = 'http://direct.virtaicloud.com:21834'
+const CLOUD_BASE = 'http://direct.virtaicloud.com:47019'
 
 /** 妆容生成 - 创建任务 */
 export async function createMakeupTask(imageId: File, imageRef: File) {

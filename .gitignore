@@ -27,3 +27,6 @@ demo
 *.sw?
 
 background/cache/
+
+ref/0
+.vscode
